@@ -1,0 +1,77 @@
+Lexer.l file
+%{
+#include "parser.tab.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+%}
+%option noyywrap
+%%
+[ \t\n]+ ; // Ignore whitespace
+"#include" { return INCLUDE; }
+"stdio.h" { return HEADER; }
+"void" { return VOID; }
+"main" { return MAIN; }
+"int" { return INT; }
+"printf" { return PRINTF; }
+"(" { return LPAREN; }
+")" { return RPAREN; }
+"{" { return LBRACE; }
+"}" { return RBRACE; }
+"," { return COMMA; }
+"=" { return ASSIGN; }
+[0-9]+ { yylval.number = atoi(yytext); return NUMBER; }
+\"[^\"]*\" { yylval.string = strdup(yytext); return STRING; }
+“[^”]*” { yylval.string = strdup(yytext); return STRING; } //
+Handling non-standard quotes
+[a-zA-Z_][a-zA-Z0-9_]* { yylval.string = strdup(yytext); return
+IDENTIFIER; }
+";" { return SEMICOLON; }
+. { printf("Unexpected character: %s\n", yytext); }
+%%
+
+
+Parser.y file
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+void yyerror(const char *s);
+int yylex();
+%}
+%union {
+int number;
+char *string;
+}
+%token <number> NUMBER
+%token <string> STRING IDENTIFIER
+%token INCLUDE HEADER VOID MAIN INT PRINTF LPAREN RPAREN
+LBRACE RBRACE COMMA ASSIGN SEMICOLON
+%%
+program:
+| program statement
+;
+statement:
+INCLUDE HEADER SEMICOLON
+| VOID MAIN LPAREN RPAREN LBRACE declarations RBRACE
+| PRINTF LPAREN STRING RPAREN SEMICOLON { printf("%s\n", $3);
+free($3); }
+;
+declarations:
+declaration
+| declarations declaration
+;
+declaration:
+INT IDENTIFIER COMMA IDENTIFIER COMMA IDENTIFIER ASSIGN
+NUMBER SEMICOLON
+;
+%%
+void yyerror(const char *s) {
+fprintf(stderr, "Error: %s\n", s);
+}
+int main(void) {
+yyparse();
+return 0;
+}
+
