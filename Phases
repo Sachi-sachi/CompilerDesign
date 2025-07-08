@@ -1,0 +1,96 @@
+ Lexer.l file
+ %{
+ #include "parser.tab.h"
+ #include <stdlib.h>
+#include <string.h>
+ %}
+ %%
+ [0-9]+
+ { yylval.intval = atoi(yytext); return NUMBER; }
+ [a-zA-Z_][a-zA-Z0-9_]* { yylval.idval = strdup(yytext); return IDENTIFIER; }
+ "+"
+ { return PLUS; }
+ "-"
+ "*"
+ "/"
+ "="
+ "("
+ ")"
+ { return MINUS; }
+ { return MUL; }
+ { return DIV; }
+ { return ASSIGN; }
+ { return LPAREN; }
+ { return RPAREN; }
+ [ \t\n]+ { /* ignore whitespace */ }
+ .
+ { printf("Unknown character: %s\n", yytext); }
+ %%
+ int yywrap() {
+ return 1; // Explicitly define yywrap to avoid needing libfl.a
+ }
+ Parser.y file
+ %{
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ // Declare the tokens
+ extern int yylex();
+ extern int yyparse();
+ extern FILE *yyin;
+void yyerror(const char *s) {
+ fprintf(stderr, "Error: %s\n", s);
+ }
+ %}
+ %union {
+ int intval;
+ char* idval;
+ }
+ // For numbers
+ // For identifiers
+ %token <intval> NUMBER
+ %token <idval> IDENTIFIER
+ %token PLUS MINUS MUL DIV ASSIGN LPAREN RPAREN
+ %type <intval> expression term factor
+ %%
+ // Grammar rules for the parser
+ assignment:
+ IDENTIFIER ASSIGN expression { printf("%s = %d\n", $1, $3); free($1); }
+ ;
+ expression:
+ term
+ { $$ = $1; }
+ | expression PLUS term { $$ = $1 + $3; }
+ | expression MINUS term { $$ = $1- $3; }
+ ;
+ term:
+ factor
+ { $$ = $1; }
+ | term MUL factor { $$ = $1 * $3; }
+ | term DIV factor { $$ = $1 / $3; }
+ ;
+factor:
+ NUMBER
+ | IDENTIFIER
+ Variable handling */ }
+ { $$ = $1; }
+ { printf("Using variable %s\n", $1); free($1); $$ = 0; /*
+ | LPAREN expression RPAREN { $$ = $2; }
+ ;
+ %%
+ // Main function to set up the lexer and parser
+ int main(int argc, char **argv) {
+ if (argc > 1) {
+ yyin = fopen(argv[1], "r");
+ if (!yyin) {
+ printf("Error opening file: %s\n", argv[1]);
+ return 1;
+ }
+ }
+ yyparse(); // Call Bison parser
+ return 0;
+ }
+ Three Address Code:
+1. t1 = a * b
+ 2. t2 = t1 + c
+ 3. x = t2
